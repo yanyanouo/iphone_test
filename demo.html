@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone震動偵測器 - 數據記錄版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .permission-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .control-btn {
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .start-btn {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .stop-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .export-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .control-btn:disabled {
+            background: #666 !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .recording-indicator {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: pulse 2s infinite;
+            display: none;
+        }
+
+        .recording-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                border-color: #e74c3c;
+                background: rgba(231, 76, 60, 0.2);
+            }
+            50% { 
+                border-color: #c0392b;
+                background: rgba(231, 76, 60, 0.4);
+            }
+        }
+
+        .vibration-display {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .vibration-level {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .level-low { color: #27ae60; }
+        .level-medium { color: #f39c12; }
+        .level-high { color: #e74c3c; }
+
+        .vibration-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .data-summary {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .data-summary h3 {
+            margin-bottom: 15px;
+            text-align: center;
+            color: #3498db;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .measurement-info {
+            background: rgba(46, 204, 113, 0.2);
+            border-left: 4px solid #2ecc71;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .export-info {
+            background: rgba(243, 156, 18, 0.2);
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📳 震動數據記錄器</h1>
+            <div class="status" id="status">準備進行震動量測</div>
+        </div>
+
+        <!-- 權限啟動按鈕 -->
+        <button id="requestPermission" class="permission-btn">
+            🚀 啟動感測器權限
+        </button>
+
+        <!-- 量測控制按鈕 -->
+        <div class="button-group">
+            <button id="startMeasurement" class="control-btn start-btn" disabled>
+                ▶️ 開始量測
+            </button>
+            <button id="stopMeasurement" class="control-btn stop-btn" disabled>
+                ⏹️ 結束量測
+            </button>
+        </div>
+
+        <!-- 錄製指示器 -->
+        <div id="recordingIndicator" class="recording-indicator">
+            <div>🔴 正在記錄震動數據</div>
+            <div class="timer" id="timer">00:00</div>
+            <div>已記錄 <span id="dataPoints">0</span> 筆數據</div>
+        </div>
+
+        <!-- 匯出按鈕 -->
+        <button id="exportBtn" class="control-btn export-btn" disabled>
+            📁 匯出CSV檔案
+        </button>
+
+        <!-- 量測資訊 -->
+        <div id="measurementInfo" class="measurement-info hidden">
+            <h3>📊 本次量測資訊</h3>
+            <div>開始時間: <span id="startTime">--</span></div>
+            <div>量測時長: <span id="duration">--</span></div>
+            <div>數據筆數: <span id="totalDataPoints">0</span></div>
+        </div>
+
+        <!-- 震動顯示 -->
+        <div class="vibration-display">
+            <div class="timer" id="liveTimer">00:00</div>
+            <div>當前震動強度</div>
+            <div class="vibration-level" id="vibrationLevel">0.0</div>
+            <div class="vibration-bar">
+                <div class="bar-fill" id="vibrationBar"></div>
+            </div>
+            <div id="vibrationStatus">靜止</div>
+        </div>
+
+        <!-- 即時統計 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="maxVibration">0.0</div>
+                <div class="stat-label">最大震動</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgVibration">0.0</div>
+                <div class="stat-label">平均震動</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="vibrationCount">0</div>
+                <div class="stat-label">震動次數</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="samplingRate">0</div>
+                <div class="stat-label">採樣率(Hz)</div>
+            </div>
+        </div>
+
+        <!-- 數據摘要 -->
+        <div id="dataSummary" class="data-summary hidden">
+            <h3>📈 數據摘要</h3>
+            <div class="summary-row">
+                <span>量測時間</span>
+                <span id="summaryDuration">--</span>
+            </div>
+            <div class="summary-row">
+                <span>總數據點</span>
+                <span id="summaryDataPoints">--</span>
+            </div>
+            <div class="summary-row">
+                <span>平均採樣率</span>
+                <span id="summaryAvgRate">-- Hz</span>
+            </div>
+            <div class="summary-row">
+                <span>最大震動值</span>
+                <span id="summaryMaxVibration">--</span>
+            </div>
+            <div class="summary-row">
+                <span>平均震動值</span>
+                <span id="summaryAvgVibration">--</span>
+            </div>
+        </div>
+
+        <!-- 匯出提示 -->
+        <div id="exportInfo" class="export-info hidden">
+            <h3>💾 數據已準備匯出</h3>
+            <p>點擊上方「匯出CSV檔案」按鈕下載數據</p>
+            <p>檔案包含：時間戳記、X/Y/Z軸加速度、總震動強度</p>
+        </div>
+    </div>
+
+    <script>
+        class VibrationDataRecorder {
+            constructor() {
+                this.isPermissionGranted = false;
+                this.isRecording = false;
+                this.measurementData = [];
+                this.startTime = null;
+                this.endTime = null;
+                this.timerInterval = null;
+                
+                // 統計資料
+                this.maxVibration = 0;
+                this.vibrationSum = 0;
+                this.vibrationCount = 0;
+                this.samplingCount = 0;
+                this.lastSampleTime = 0;
+                
+                this.elements = {
+                    // 控制按鈕
+                    requestPermission: document.getElementById('requestPermission'),
+                    startMeasurement: document.getElementById('startMeasurement'),
+                    stopMeasurement: document.getElementById('stopMeasurement'),
+                    exportBtn: document.getElementById('exportBtn'),
+                    
+                    // 狀態顯示
+                    status: document.getElementById('status'),
+                    recordingIndicator: document.getElementById('recordingIndicator'),
+                    timer: document.getElementById('timer'),
+                    liveTimer: document.getElementById('liveTimer'),
+                    dataPoints: document.getElementById('dataPoints'),
+                    
+                    // 震動顯示
+                    vibrationLevel: document.getElementById('vibrationLevel'),
+                    vibrationBar: document.getElementById('vibrationBar'),
+                    vibrationStatus: document.getElementById('vibrationStatus'),
+                    
+                    // 統計數據
+                    maxVibration: document.getElementById('maxVibration'),
+                    avgVibration: document.getElementById('avgVibration'),
+                    vibrationCount: document.getElementById('vibrationCount'),
+                    samplingRate: document.getElementById('samplingRate'),
+                    
+                    // 量測資訊
+                    measurementInfo: document.getElementById('measurementInfo'),
+                    startTime: document.getElementById('startTime'),
+                    duration: document.getElementById('duration'),
+                    totalDataPoints: document.getElementById('totalDataPoints'),
+                    
+                    // 數據摘要
+                    dataSummary: document.getElementById('dataSummary'),
+                    summaryDuration: document.getElementById('summaryDuration'),
+                    summaryDataPoints: document.getElementById('summaryDataPoints'),
+                    summaryAvgRate: document.getElementById('summaryAvgRate'),
+                    summaryMaxVibration: document.getElementById('summaryMaxVibration'),
+                    summaryAvgVibration: document.getElementById('summaryAvgVibration'),
+                    exportInfo: document.getElementById('exportInfo')
+                };
+                
+                this.initializeEventListeners();
+            }
+            
+            initializeEventListeners() {
+                this.elements.requestPermission.addEventListener('click', () => this.requestPermissions());
+                this.elements.startMeasurement.addEventListener('click', () => this.startMeasurement());
+                this.elements.stopMeasurement.addEventListener('click', () => this.stopMeasurement());
+                this.elements.exportBtn.addEventListener('click', () => this.exportToCSV());
+            }
+            
+            async requestPermissions() {
+                try {
+                    this.elements.requestPermission.disabled = true;
+                    this.elements.requestPermission.textContent = '請求權限中...';
+                    this.elements.status.textContent = '正在請求感測器權限...';
+
+                    // 請求感測器權限 (iOS 13+)
+                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                        const motionPermission = await DeviceMotionEvent.requestPermission();
+                        if (motionPermission !== 'granted') {
+                            throw new Error('動作感測器權限被拒絕');
+                        }
+                    }
+
+                    this.isPermissionGranted = true;
+                    this.elements.requestPermission.style.display = 'none';
+                    this.elements.startMeasurement.disabled = false;
+                    this.elements.status.textContent = '✅ 權限已取得，可以開始量測';
+
+                } catch (error) {
+                    this.elements.status.textContent = '❌ ' + error.message;
+                    this.elements.requestPermission.disabled = false;
+                    this.elements.requestPermission.textContent = '🚀 啟動感測器權限';
+                }
+            }
+            
+            startMeasurement() {
+                if (!this.isPermissionGranted) return;
+                
+                // 重置數據
+                this.measurementData = [];
+                this.maxVibration = 0;
+                this.vibrationSum = 0;
+                this.vibrationCount = 0;
+                this.samplingCount = 0;
+                this.startTime = new Date();
+                this.isRecording = true;
+                
+                // 更新UI
+                this.elements.startMeasurement.disabled = true;
+                this.elements.stopMeasurement.disabled = false;
+                this.elements.exportBtn.disabled = true;
+                this.elements.recordingIndicator.classList.add('active');
+                this.elements.status.textContent = '🔴 正在記錄震動數據...';
+                
+                // 隱藏之前的結果
+                this.elements.measurementInfo.classList.add('hidden');
+                this.elements.dataSummary.classList.add('hidden');
+                this.elements.exportInfo.classList.add('hidden');
+                
+                // 開始監聽感測器
+                window.addEventListener('devicemotion', this.handleDeviceMotion.bind(this));
+                
+                // 開始計時器
+                this.startTimer();
+                
+                // 顯示開始時間
+                this.elements.startTime.textContent = this.startTime.toLocaleString();
+            }
+            
+            stopMeasurement() {
+                this.isRecording = false;
+                this.endTime = new Date();
+                
+                // 停止監聽感測器
+                window.removeEventListener('devicemotion', this.handleDeviceMotion.bind(this));
+                
+                // 停止計時器
+                this.stopTimer();
+                
+                // 更新UI
+                this.elements.startMeasurement.disabled = false;
+                this.elements.stopMeasurement.disabled = true;
+                this.elements.exportBtn.disabled = false;
+                this.elements.recordingIndicator.classList.remove('active');
+                this.elements.status.textContent = '⏹️ 量測已完成';
+                
+                // 顯示量測資訊
+                this.showMeasurementSummary();
+            }
+            
+            handleDeviceMotion(event) {
+                if (!this.isRecording) return;
+                
+                const acceleration = event.acceleration;
+                if (!acceleration) return;
+                
+                const currentTime = Date.now();
+                const timestamp = new Date().toISOString();
+                
+                // 計算總震動強度
+                const totalVibration = Math.sqrt(
+                    Math.pow(acceleration.x || 0, 2) +
+                    Math.pow(acceleration.y || 0, 2) +
+                    Math.pow(acceleration.z || 0, 2)
+                );
+                
+                // 記錄數據
+                this.measurementData.push({
+                    timestamp: timestamp,
+                    time: currentTime - this.startTime.getTime(),
+                    accelX: acceleration.x || 0,
+                    accelY: acceleration.y || 0,
+                    accelZ: acceleration.z || 0,
+                    totalVibration: totalVibration
+                });
+                
+                // 更新統計
+                this.updateStatistics(totalVibration, currentTime);
+                
+                // 更新顯示
+                this.updateDisplay(totalVibration);
+            }
+            
+            updateStatistics(vibration, currentTime) {
+                // 更新最大震動
+                if (vibration > this.maxVibration) {
+                    this.maxVibration = vibration;
+                }
+                
+                // 更新平均震動
+                this.vibrationSum += vibration;
+                this.samplingCount++;
+                
+                // 計算震動次數（大於閾值的次數）
+                if (vibration > 2) {
+                    this.vibrationCount++;
+                }
+                
+                // 計算採樣率
+                if (this.lastSampleTime > 0) {
+                    const timeDiff = (currentTime - this.lastSampleTime) / 1000;
+                    const instantRate = 1 / timeDiff;
+                    // 使用移動平均來平滑採樣率
+                    const currentRate = parseFloat(this.elements.samplingRate.textContent) || 0;
+                    const smoothedRate = (currentRate * 0.9 + instantRate * 0.1);
+                    this.elements.samplingRate.textContent = smoothedRate.toFixed(1);
+                }
+                this.lastSampleTime = currentTime;
+            }
+            
+            updateDisplay(vibration) {
+                const displayValue = vibration.toFixed(1);
+                this.elements.vibrationLevel.textContent = displayValue;
+                
+                // 更新顏色和狀態
+                this.elements.vibrationLevel.className = 'vibration-level';
+                if (vibration < 2) {
+                    this.elements.vibrationLevel.classList.add('level-low');
+                    this.elements.vibrationStatus.textContent = '靜止';
+                } else if (vibration < 8) {
+                    this.elements.vibrationLevel.classList.add('level-medium');
+                    this.elements.vibrationStatus.textContent = '輕微震動';
+                } else {
+                    this.elements.vibrationLevel.classList.add('level-high');
+                    this.elements.vibrationStatus.textContent = '強烈震動';
+                }
+                
+                // 更新進度條
+                const percentage = Math.min((vibration / 20) * 100, 100);
+                this.elements.vibrationBar.style.width = percentage + '%';
+                
+                // 更新統計顯示
+                this.elements.maxVibration.textContent = this.maxVibration.toFixed(1);
+                const avgVibration = this.samplingCount > 0 ? this.vibrationSum / this.samplingCount : 0;
+                this.elements.avgVibration.textContent = avgVibration.toFixed(1);
+                this.elements.vibrationCount.textContent = this.vibrationCount;
+                this.elements.dataPoints.textContent = this.measurementData.length;
+            }
+            
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.startTime.getTime();
+                    const timeString = this.formatTime(elapsed);
+                    this.elements.timer.textContent = timeString;
+                    this.elements.liveTimer.textContent = timeString;
+                }, 1000);
+            }
+            
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+            
+            formatTime(milliseconds) {
+                const totalSeconds = Math.floor(milliseconds / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            showMeasurementSummary() {
+                const duration = this.endTime.getTime() - this.startTime.getTime();
+                const durationString = this.formatTime(duration);
+                const avgSamplingRate = this.measurementData.length / (duration / 1000);
+                const avgVibration = this.samplingCount > 0 ? this.vibrationSum / this.samplingCount : 0;
+                
+                // 更新量測資訊
+                this.elements.duration.textContent = durationString;
+                this.elements.totalDataPoints.textContent = this.measurementData.length;
+                this.elements.measurementInfo.classList.remove('hidden');
+                
+                // 更新數據摘要
+                this.elements.summaryDuration.textContent = durationString;
+                this.elements.summaryDataPoints.textContent = this.measurementData.length;
+                this.elements.summaryAvgRate.textContent = avgSamplingRate.toFixed(1) + ' Hz';
+                this.elements.summaryMaxVibration.textContent = this.maxVibration.toFixed(2);
+                this.elements.summaryAvgVibration.textContent = avgVibration.toFixed(2);
+                this.elements.dataSummary.classList.remove('hidden');
+                
+                // 顯示匯出提示
+                this.elements.exportInfo.classList.remove('hidden');
+            }
+            
+            exportToCSV() {
+                if (this.measurementData.length === 0) {
+                    alert('沒有數據可以匯出');
+                    return;
+                }
+                
+                // 建立CSV標頭
+                const headers = [
+                    'Timestamp',
+                    'Time_ms',
+                    'Acceleration_X',
+                    'Acceleration_Y', 
+                    'Acceleration_Z',
+                    'Total_Vibration'
+                ];
+                
+                // 建立CSV內容
+                let csvContent = headers.join(',') + '\n';
+                
+                this.measurementData.forEach(data => {
+                    const row = [
+                        data.timestamp,
+                        data.time,
+                        data.accelX.toFixed(6),
+                        data.accelY.toFixed(6),
+                        data.accelZ.toFixed(6),
+                        data.totalVibration.toFixed(6)
+                    ];
+                    csvContent += row.join(',') + '\n';
+                });
+                
+                // 建立下載連結
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                // 產生檔案名稱
+                const startTimeStr = this.startTime.toISOString().replace(/[:.]/g, '-');
+                const filename = `vibration_data_${startTimeStr}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 更新狀態
+                this.elements.status.textContent = `✅ CSV檔案已下載: ${filename}`;
+            }
+        }
+        
+        // 初始化應用程式
+        document.addEventListener('DOMContentLoaded', () => {
+            // 檢查基本支援
+            if (!window.DeviceMotionEvent) {
+                document.getElementById('status').textContent = '❌ 此裝置不支援動作感測器';
+                document.getElementById('requestPermission').disabled = true;
+                return;
+            }
+            
+            new VibrationDataRecorder();
+        });
+    </script>
+</body>
+</html>
